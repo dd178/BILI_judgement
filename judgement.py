@@ -1,0 +1,219 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+# @Time    : 2021-10-01 0:28
+# @Author  : 178
+
+import asyncio, time, json, os, sys, random, logging, aiohttp
+from collections import OrderedDict
+
+
+class asyncBiliApi(object):
+    '''B站异步接口类'''
+    def __init__(self,
+                 headers: dict
+                 ):
+        self._islogin = False
+        self._show_name = None
+        connector = aiohttp.TCPConnector(limit=50)
+        self._session = aiohttp.ClientSession(
+            headers=headers,
+            connector=connector,
+            trust_env=True
+        )
+
+    async def login_by_cookie(self,
+                              cookieData,
+                              checkBanned=True,
+                              strict=False
+                              ):
+        '''
+        登录并获取账户信息
+        cookieData dict 账户cookie
+        checkBanned bool 检查是否被封禁
+        strict bool 是否严格限制cookie在.bilibili.com域名之下
+        '''
+        if strict:
+            from yarl import URL
+            self._session.cookie_jar.update_cookies(cookieData, URL('https://.bilibili.com'))
+        else:
+            self._session.cookie_jar.update_cookies(cookieData)
+
+        await self.refreshInfo()
+        if not self._islogin:
+            return False
+
+        if 'bili_jct' in cookieData:
+            self._bili_jct = cookieData["bili_jct"]
+        else:
+            self._bili_jct = ''
+
+        self._isBanned = None
+        if checkBanned:
+            code = (await self.likeCv(7793107))["code"]
+            if code != 0 and code != 65006 and code != -404:
+                self._isBanned = True
+                import warnings
+                warnings.warn(f'{self._name}:账号异常，请检查bili_jct参数是否有效或本账号是否被封禁')
+            else:
+                self._isBanned = False
+
+        return True
+
+    async def refreshInfo(self):
+        '''刷新账户信息(需要先登录)'''
+        ret = await self.getWebNav()
+        if ret["code"] != 0:
+            self._islogin = False
+            return
+
+        self._islogin = True
+        self._name = ret["data"]["uname"]
+        if not self._show_name:
+            self._show_name = self._name
+
+    @property
+    def name(self) -> str:
+        '''获取用于显示的用户名'''
+        return self._show_name
+
+    async def getWebNav(self):
+        '''获取导航信息'''
+        url = "https://api.bilibili.com/x/web-interface/nav"
+        async with self._session.get(url, verify_ssl=False) as r:
+            ret = await r.json()
+        return ret
+
+    async def likeCv(self,
+                     cvid: int,
+                     type=1):
+        '''
+        点赞专栏
+        cvid int 专栏id
+        type int 类型
+        '''
+        url = 'https://api.bilibili.com/x/article/like'
+        post_data = {
+            "id": cvid,
+            "type": type,
+            "csrf": self._bili_jct
+        }
+        async with self._session.post(url, data=post_data, verify_ssl=False) as r:
+            return await r.json()
+
+    async def juryInfo(self):
+        '''
+        取当前账户风纪委员状态
+        '''
+        url = 'https://api.bilibili.com/x/credit/jury/jury'
+        async with self._session.get(url, verify_ssl=False) as r:
+            return await r.json()
+
+    async def juryCaseObtain(self):
+        '''
+        拉取一个案件用于风纪委员投票
+        '''
+        url = 'https://api.bilibili.com/x/credit/v2/jury/case/next'
+        post_data = {
+            "csrf": self._bili_jct
+        }
+        async with self._session.get(url, data=post_data, verify_ssl=False) as r:
+            return await r.json()
+
+    async def juryopinion(self,
+                          case_id: str
+                          ):
+        '''
+        获取风纪委员案件众议观点
+        '''
+        url = f'https://api.bilibili.com/x/credit/v2/jury/case/opinion?case_id={case_id}&pn=1&ps=5'
+        async with self._session.get(url, verify_ssl=False) as r:
+            return await r.json()
+
+    async def juryVote(self,
+                       case_id: str,
+                       vote: int,
+                       anonymous: int = 0,
+                       ):
+        '''风纪委员案件投票'''
+        url = 'https://api.bilibili.com/x/credit/v2/jury/vote'
+        post_data = {
+            "case_id": case_id,
+            "vote": vote,
+            "csrf": self._bili_jct,
+            "anonymous": anonymous
+        }
+        async with self._session.post(url, data=post_data, verify_ssl=False) as r:
+            return await r.json()
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *exc) -> None:
+        await self.close()
+
+    async def close(self) -> None:
+        await self._session.close()
+
+
+def load_config():
+    '''加载配置文件'''
+    if os.path.exists(f'{os.path.dirname(os.path.realpath(__file__))}/config/config.json'):
+        with open(f'{os.path.dirname(os.path.realpath(__file__))}/config/config.json', 'r', encoding='utf-8') as fp:
+            return json.loads(fp.read(), object_pairs_hook=OrderedDict)
+    else:
+        raise RuntimeError('未找到配置文件')
+
+
+async def start(user: dict,
+                header: dict,
+                err: int = 3
+                ):
+
+    async with asyncBiliApi(header) as biliapi:
+        try:
+            if not await biliapi.login_by_cookie(user["cookieDatas"]):
+                logging.warning(f'id为{user["cookieDatas"]["DedeUserID"]}的账户cookie失效，跳过此账户后续操作')
+                return
+        except Exception as er:
+            logging.warning(f'登录验证id为{user["cookieDatas"]["DedeUserID"]}的账户失败，原因为{str(er)}，跳过此账户后续操作')
+            return
+        while err != 0:
+            next_ = await biliapi.juryCaseObtain()  # 获取案件
+            if next_["code"] == 0:
+                case_id = next_['data']['case_id']
+                opinions = await biliapi.juryopinion(case_id)  # 获取观点列表
+                if opinions["code"] == 0 and opinions['data']['list']:
+                    opinion = random.choice(opinions['data']['list'])  # 从观点列表里随机选取一个
+                    vote = await biliapi.juryVote(case_id=case_id, vote=opinion['vote'])
+                    if vote["code"] == 0:
+                        logging.info(f'{biliapi.name}：成功为案件{case_id}投下{opinion["vote_text"]}')
+                    else:
+                        logging.warning(f'{biliapi.name}：风纪委员投票失败，错误码：{vote["code"]}，信息为：{vote["message"]}')
+                        err -= 1
+                else:
+                    time.sleep(3)
+            elif next_["code"] == 25014:  # 案件已审满
+                logging.info(f'{biliapi.name}：{next_["message"]}')
+                break
+            elif next_["code"] == 25008:  # 没有新案件
+                logging.info(f'{biliapi.name}：{next_["message"]}')
+                break
+            else:
+                logging.warning(f'{biliapi.name}：获取风纪委员案件失败，错误码：{next_["code"]}，信息为：{next_["message"]}')
+                err -= 1
+                time.sleep(10)
+
+
+async def main():
+    await asyncio.wait([asyncio.ensure_future(start(user=user, header=configData["http_header"])) for user in configData["users"]])
+
+
+if __name__ == '__main__':
+    try:
+        logging.basicConfig(level=logging.INFO, format="[%(asctime)s] [%(levelname)s]: %(message)s")
+        configData = load_config()
+    except Exception as e:
+        logging.error(f'配置加载异常，原因为{str(e)}，退出程序')
+        sys.exit(6)
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(main())
