@@ -1,6 +1,6 @@
 # BILI_judgement
 
-风纪单功能版，只有风纪投票一个功能，部分代码抄自 [BiliExper](https://github.com/MaxSecurity/BiliExper) ，投票结果从众议观点中随机抽取
+风纪单功能版，只有风纪投票一个功能，部分代码抄自 [BiliExper](https://github.com/MaxSecurity/BiliExper) ，投票结果从众议观点中随机抽取,如果没有观点，则投默认票
 
 ## 使用：
 * 使用python3.7或以上版本

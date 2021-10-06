@@ -4,6 +4,10 @@
         "Referer": "https://www.bilibili.com/",
         "Connection": "keep-alive"
     },
+    "default_vote": {
+        "mode": 1,
+        "vote": 1
+    },
     "users": [
         {
             "cookieDatas": {

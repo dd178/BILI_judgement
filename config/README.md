@@ -5,6 +5,10 @@
         "Referer": "https://www.bilibili.com/",
         "Connection": "keep-alive"
     },
+    "default_vote": {  // 默认投票
+        "mode": 1,  // 选择模式，1为获取案件后有观点就参考观点，没有就投默认，2为获取案件后有观点就参考观点，没有就先暂存案件id跳过，等案件池空了获取不到观点后再倒回去投默认
+        "vote": 1  // 默认投票，0为好，1为普通，2为差，3为无法判断
+    },
     "users": [
         {
             "cookieDatas": {  // 账号一
