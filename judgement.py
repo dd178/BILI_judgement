@@ -234,7 +234,7 @@ async def mode_1(biliapi,
                 else:
                     if not await replenish_vote(case_id, biliapi, configData['default_vote']['vote']):
                         err -= 1
-                time.sleep(5)
+                time.sleep(4)
             elif next_["code"] == 25014:  # 案件已审满
                 logging.info(f'{biliapi.name}：{next_["message"]}')
                 return
@@ -269,7 +269,7 @@ async def mode_2(biliapi,
                         err -= 1
                 else:
                     case_id_list.append(case_id)
-                time.sleep(5)
+                time.sleep(4)
             elif next_["code"] == 25014:  # 案件已审满
                 logging.info(f'{biliapi.name}：{next_["message"]}')
                 return
@@ -281,7 +281,7 @@ async def mode_2(biliapi,
                         return
                     if not await replenish_vote(case_id, biliapi, configData['default_vote']['vote']):
                         err -= 1
-                    time.sleep(5)
+                    time.sleep(4)
             else:
                 logging.warning(f'{biliapi.name}：获取风纪委员案件失败，错误码：【{next_["code"]}】，信息为：【{next_["message"]}】')
                 err -= 1
