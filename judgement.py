@@ -3,8 +3,10 @@
 # @Time    : 2021-10-01 0:28
 # @Author  : 178
 
-import asyncio, time, json, os, sys, random, logging, aiohttp
+import asyncio, time, json, os, sys, random, logging, aiohttp, traceback
 from collections import OrderedDict
+
+_debug = False
 
 
 class asyncBiliApi(object):
@@ -14,10 +16,12 @@ class asyncBiliApi(object):
                  ):
         self._islogin = False
         self._show_name = None
-        connector = aiohttp.TCPConnector(limit=50)
+        timeout = aiohttp.ClientTimeout(total=60)
+        connector = aiohttp.TCPConnector(limit=50, force_close=True)
         self._session = aiohttp.ClientSession(
             headers=headers,
             connector=connector,
+            timeout=timeout,
             trust_env=True
         )
 
@@ -228,13 +232,13 @@ async def mode_1(biliapi,
             if next_["code"] == 0:
                 case_id = next_['data']['case_id']
                 opinions = await biliapi.juryopinion(case_id)  # 获取观点列表
+                time.sleep(15)
                 if opinions['data']['list']:
                     if not await opinion_vote(case_id, opinions['data']['list'], biliapi):
                         err -= 1
                 else:
                     if not await replenish_vote(case_id, biliapi, configData['default_vote']['vote']):
                         err -= 1
-                time.sleep(4)
             elif next_["code"] == 25014:  # 案件已审满
                 logging.info(f'{biliapi.name}：{next_["message"]}')
                 return
@@ -244,11 +248,13 @@ async def mode_1(biliapi,
             else:
                 logging.warning(f'{biliapi.name}：获取风纪委员案件失败，错误码：【{next_["code"]}】，信息为：【{next_["message"]}】')
                 err -= 1
-                time.sleep(10)
+                time.sleep(30)
         except Exception as er:
             logging.error(f'{biliapi.name}：发生错误，错误信息为：{er}')
+            if _debug:
+                traceback.print_exc()
             err -= 1
-            time.sleep(10)
+            time.sleep(30)
 
 
 async def mode_2(biliapi,
@@ -264,12 +270,12 @@ async def mode_2(biliapi,
             if next_["code"] == 0:
                 case_id = next_['data']['case_id']
                 opinions = await biliapi.juryopinion(case_id)  # 获取观点列表
+                time.sleep(15)
                 if opinions['data']['list']:
                     if not await opinion_vote(case_id, opinions['data']['list'], biliapi):
                         err -= 1
                 else:
                     case_id_list.append(case_id)
-                time.sleep(4)
             elif next_["code"] == 25014:  # 案件已审满
                 logging.info(f'{biliapi.name}：{next_["message"]}')
                 return
@@ -281,15 +287,17 @@ async def mode_2(biliapi,
                         return
                     if not await replenish_vote(case_id, biliapi, configData['default_vote']['vote']):
                         err -= 1
-                    time.sleep(4)
+                    time.sleep(15)
             else:
                 logging.warning(f'{biliapi.name}：获取风纪委员案件失败，错误码：【{next_["code"]}】，信息为：【{next_["message"]}】')
                 err -= 1
-                time.sleep(10)
+                time.sleep(30)
         except Exception as er:
             logging.error(f'{biliapi.name}：发生错误，错误信息为：{er}')
+            if _debug:
+                traceback.print_exc()
             err -= 1
-            time.sleep(10)
+            time.sleep(30)
 
 
 async def start(user: dict,
@@ -311,6 +319,8 @@ async def start(user: dict,
                 await mode_2(biliapi)
         except Exception as er:
             logging.error(f'{biliapi.name}：发生错误，错误信息为：{er}')
+            if _debug:
+                traceback.print_exc()
             return
 
 
@@ -324,6 +334,8 @@ if __name__ == '__main__':
         configData = load_config()
     except Exception as er:
         logging.error(f'配置加载异常，原因为{er}，退出程序')
+        if _debug:
+            traceback.print_exc()
         sys.exit()
     loop = asyncio.get_event_loop()
     loop.run_until_complete(main())
