@@ -221,12 +221,13 @@ async def replenish_vote(case_id: str,
 
 
 async def mode_1(biliapi,
+                 default_vote: dict,
                  err: int = 3
                  ):
     while True:
         if err == 0:
             logging.error(f"{biliapi.name}：错误次数过多，结束任务！")
-            break
+            return
         try:
             next_ = await biliapi.juryCaseObtain()  # 获取案件
             if next_["code"] == 0:
@@ -237,14 +238,18 @@ async def mode_1(biliapi,
                     if not await opinion_vote(case_id, opinions['data']['list'], biliapi):
                         err -= 1
                 else:
-                    if not await replenish_vote(case_id, biliapi, configData['default_vote']['vote']):
+                    if not await replenish_vote(case_id, biliapi, default_vote['vote']):
                         err -= 1
             elif next_["code"] == 25014:  # 案件已审满
                 logging.info(f'{biliapi.name}：{next_["message"]}')
                 return
             elif next_["code"] == 25008:  # 没有新案件
                 logging.info(f'{biliapi.name}：{next_["message"]}')
-                return
+                if default_vote['once']:
+                    logging.info(f'{biliapi.name}：休眠5分钟后继续获取案件！')
+                    time.sleep(300)
+                else:
+                    return
             else:
                 logging.warning(f'{biliapi.name}：获取风纪委员案件失败，错误码：【{next_["code"]}】，信息为：【{next_["message"]}】')
                 err -= 1
@@ -258,6 +263,7 @@ async def mode_1(biliapi,
 
 
 async def mode_2(biliapi,
+                 default_vote: dict,
                  err: int = 3
                  ):
     case_id_list = []
@@ -281,13 +287,18 @@ async def mode_2(biliapi,
                 return
             elif next_["code"] == 25008:  # 没有新案件
                 logging.info(f'{biliapi.name}：{next_["message"]}')
-                for case_id in case_id_list:
-                    if err == 0:
-                        logging.error(f"{biliapi.name}：错误次数过多，结束任务！")
-                        return
-                    if not await replenish_vote(case_id, biliapi, configData['default_vote']['vote']):
-                        err -= 1
-                    time.sleep(15)
+                if not case_id_list and default_vote['once']:
+                    logging.info(f'{biliapi.name}：休眠5分钟后继续获取案件！')
+                    time.sleep(300)
+                else:
+                    for case_id in case_id_list:
+                        case_id_list.remove(case_id)
+                        if err == 0:
+                            logging.error(f"{biliapi.name}：错误次数过多，结束任务！")
+                            return
+                        if not await replenish_vote(case_id, biliapi, default_vote['vote']):
+                            err -= 1
+                        time.sleep(15)
             else:
                 logging.warning(f'{biliapi.name}：获取风纪委员案件失败，错误码：【{next_["code"]}】，信息为：【{next_["message"]}】')
                 err -= 1
@@ -301,10 +312,10 @@ async def mode_2(biliapi,
 
 
 async def start(user: dict,
-                header: dict,
+                configData: dict,
                 ):
     '''开始投票'''
-    async with asyncBiliApi(header) as biliapi:
+    async with asyncBiliApi(configData["http_header"]) as biliapi:
         try:
             if not await biliapi.login_by_cookie(user["cookieDatas"]):
                 logging.error(f'id为【{user["cookieDatas"]["DedeUserID"]}】的账户cookie失效，跳过此账户后续操作')
@@ -313,10 +324,11 @@ async def start(user: dict,
             logging.error(f'登录验证id为【{user["cookieDatas"]["DedeUserID"]}】的账户失败，原因为【{er}】，跳过此账户后续操作')
             return
         try:
+            logging.info(f'{biliapi.name}：开始执行风纪委员投票！')
             if configData['default_vote']['mode'] == 1:
-                await mode_1(biliapi)
+                await mode_1(biliapi, configData['default_vote'])
             elif configData['default_vote']['mode'] == 2:
-                await mode_2(biliapi)
+                await mode_2(biliapi, configData['default_vote'])
         except Exception as er:
             logging.error(f'{biliapi.name}：发生错误，错误信息为：{er}')
             if _debug:
@@ -324,8 +336,8 @@ async def start(user: dict,
             return
 
 
-async def main():
-    await asyncio.wait([asyncio.ensure_future(start(user=user, header=configData["http_header"])) for user in configData["users"]])
+async def main(configData):
+    await asyncio.wait([asyncio.ensure_future(start(user=user, configData=configData)) for user in configData["users"]])
 
 
 if __name__ == '__main__':
@@ -338,4 +350,4 @@ if __name__ == '__main__':
             traceback.print_exc()
         sys.exit()
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(main())
+    loop.run_until_complete(main(configData))
