@@ -238,7 +238,7 @@ async def mode_1(biliapi,
                     if not await opinion_vote(case_id, opinions['data']['list'], biliapi):
                         err -= 1
                 else:
-                    if not await replenish_vote(case_id, biliapi, default_vote['vote']):
+                    if not await replenish_vote(case_id, biliapi, random.choice(default_vote['vote'])):
                         err -= 1
             elif next_["code"] == 25014:  # 案件已审满
                 logging.info(f'{biliapi.name}：{next_["message"]}')
@@ -246,8 +246,8 @@ async def mode_1(biliapi,
             elif next_["code"] == 25008:  # 没有新案件
                 logging.info(f'{biliapi.name}：{next_["message"]}')
                 if default_vote['once']:
-                    logging.info(f'{biliapi.name}：休眠5分钟后继续获取案件！')
-                    time.sleep(300)
+                    logging.info(f'{biliapi.name}：休眠30分钟后继续获取案件！')
+                    time.sleep(1800)
                 else:
                     return
             else:
@@ -288,15 +288,15 @@ async def mode_2(biliapi,
             elif next_["code"] == 25008:  # 没有新案件
                 logging.info(f'{biliapi.name}：{next_["message"]}')
                 if not case_id_list and default_vote['once']:
-                    logging.info(f'{biliapi.name}：休眠5分钟后继续获取案件！')
-                    time.sleep(300)
+                    logging.info(f'{biliapi.name}：休眠30分钟后继续获取案件！')
+                    time.sleep(1800)
                 else:
                     for case_id in case_id_list:
                         case_id_list.remove(case_id)
                         if err == 0:
                             logging.error(f"{biliapi.name}：错误次数过多，结束任务！")
                             return
-                        if not await replenish_vote(case_id, biliapi, default_vote['vote']):
+                        if not await replenish_vote(case_id, biliapi, random.choice(default_vote['vote'])):
                             err -= 1
                         time.sleep(15)
             else:

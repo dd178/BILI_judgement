@@ -6,7 +6,7 @@
     },
     "default_vote": {
         "mode": 1,
-        "vote": 1,
+        "vote": [0, 1, 2],
         "once": true
     },
     "users": [
