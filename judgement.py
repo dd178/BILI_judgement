@@ -3,7 +3,7 @@
 # @Time    : 2021-10-01 0:28
 # @Author  : 178
 
-import asyncio, time, json, os, sys, random, logging, aiohttp, traceback
+import asyncio, json, os, sys, random, logging, aiohttp, traceback
 from collections import OrderedDict
 
 _debug = False
@@ -233,7 +233,8 @@ async def mode_1(biliapi,
             if next_["code"] == 0:
                 case_id = next_['data']['case_id']
                 opinions = await biliapi.juryopinion(case_id)  # 获取观点列表
-                time.sleep(15)
+                await biliapi.juryVote(case_id=case_id, vote=0)
+                await asyncio.sleep(round(random.uniform(10, 20), 4))
                 if opinions['data']['list']:
                     if not await opinion_vote(case_id, opinions['data']['list'], biliapi):
                         err -= 1
@@ -247,19 +248,19 @@ async def mode_1(biliapi,
                 logging.info(f'{biliapi.name}：{next_["message"]}')
                 if default_vote['once']:
                     logging.info(f'{biliapi.name}：休眠30分钟后继续获取案件！')
-                    time.sleep(1800)
+                    await asyncio.sleep(1800)
                 else:
                     return
             else:
                 logging.warning(f'{biliapi.name}：获取风纪委员案件失败，错误码：【{next_["code"]}】，信息为：【{next_["message"]}】')
                 err -= 1
-                time.sleep(30)
+                await asyncio.sleep(round(random.uniform(20, 40), 4))
         except Exception as er:
             logging.error(f'{biliapi.name}：发生错误，错误信息为：{er}')
             if _debug:
                 traceback.print_exc()
             err -= 1
-            time.sleep(30)
+            await asyncio.sleep(round(random.uniform(20, 40), 4))
 
 
 async def mode_2(biliapi,
@@ -276,7 +277,8 @@ async def mode_2(biliapi,
             if next_["code"] == 0:
                 case_id = next_['data']['case_id']
                 opinions = await biliapi.juryopinion(case_id)  # 获取观点列表
-                time.sleep(15)
+                await biliapi.juryVote(case_id=case_id, vote=0)
+                await asyncio.sleep(round(random.uniform(10, 20), 4))
                 if opinions['data']['list']:
                     if not await opinion_vote(case_id, opinions['data']['list'], biliapi):
                         err -= 1
@@ -289,7 +291,7 @@ async def mode_2(biliapi,
                 logging.info(f'{biliapi.name}：{next_["message"]}')
                 if not case_id_list and default_vote['once']:
                     logging.info(f'{biliapi.name}：休眠30分钟后继续获取案件！')
-                    time.sleep(1800)
+                    await asyncio.sleep(1800)
                 else:
                     for case_id in case_id_list:
                         case_id_list.remove(case_id)
@@ -298,17 +300,17 @@ async def mode_2(biliapi,
                             return
                         if not await replenish_vote(case_id, biliapi, random.choice(default_vote['vote'])):
                             err -= 1
-                        time.sleep(15)
+                        await asyncio.sleep(round(random.uniform(10, 20), 4))
             else:
                 logging.warning(f'{biliapi.name}：获取风纪委员案件失败，错误码：【{next_["code"]}】，信息为：【{next_["message"]}】')
                 err -= 1
-                time.sleep(30)
+                await asyncio.sleep(round(random.uniform(20, 40), 4))
         except Exception as er:
             logging.error(f'{biliapi.name}：发生错误，错误信息为：{er}')
             if _debug:
                 traceback.print_exc()
             err -= 1
-            time.sleep(30)
+            await asyncio.sleep(round(random.uniform(20, 40), 4))
 
 
 async def start(user: dict,
