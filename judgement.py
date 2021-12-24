@@ -108,8 +108,19 @@ class asyncBiliApi(object):
         '''
         取当前账户风纪委员状态
         '''
-        url = 'https://api.bilibili.com/x/credit/jury/jury'
+        url = 'https://api.bilibili.com/x/credit/v2/jury/jury'
         async with self._session.get(url, verify_ssl=False) as r:
+            return await r.json()
+
+    async def juryapply(self):
+        '''
+        申请风纪委员资格
+        '''
+        url = 'https://api.bilibili.com/x/credit/v2/jury/apply'
+        post_data = {
+            "csrf": self._bili_jct
+        }
+        async with self._session.post(url, data=post_data, verify_ssl=False) as r:
             return await r.json()
 
     async def juryCaseInfo(self,
@@ -251,6 +262,12 @@ async def mode_1(biliapi,
                     await asyncio.sleep(1800)
                 else:
                     return
+            elif next_["code"] == 25006:  # 风纪委员资格已过期
+                logging.warning(f'{biliapi.name}：风纪委员资格已过期，尝试申请资格')
+                r = await biliapi.juryapply()
+                if r["code"] != 0:
+                    logging.info(f'{biliapi.name}：{r}')
+                    return
             else:
                 logging.warning(f'{biliapi.name}：获取风纪委员案件失败，错误码：【{next_["code"]}】，信息为：【{next_["message"]}】')
                 err -= 1
@@ -301,6 +318,12 @@ async def mode_2(biliapi,
                         if not await replenish_vote(case_id, biliapi, random.choice(default_vote['vote'])):
                             err -= 1
                         await asyncio.sleep(round(random.uniform(10, 20), 4))
+            elif next_["code"] == 25006:  # 风纪委员资格已过期
+                logging.warning(f'{biliapi.name}：风纪委员资格已过期，尝试申请资格')
+                r = await biliapi.juryapply()
+                if r["code"] != 0:
+                    logging.info(f'{biliapi.name}：{r}')
+                    return
             else:
                 logging.warning(f'{biliapi.name}：获取风纪委员案件失败，错误码：【{next_["code"]}】，信息为：【{next_["message"]}】')
                 err -= 1
