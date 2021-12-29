@@ -162,10 +162,11 @@ class asyncBiliApi(object):
         '''风纪委员案件投票'''
         url = 'https://api.bilibili.com/x/credit/v2/jury/vote'
         post_data = {
-            "case_id": case_id,
-            "vote": vote,
-            "csrf": self._bili_jct,
-            "anonymous": anonymous
+            "case_id": case_id,  # 案件id
+            "vote": vote,  # 投票选项
+            "csrf": self._bili_jct,  # 验证
+            "insiders": random.choice([0, 1]),  # 是否观看
+            "anonymous": anonymous  # 是否匿名
         }
         async with self._session.post(url, data=post_data, verify_ssl=False) as r:
             return await r.json()
