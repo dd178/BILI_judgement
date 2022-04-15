@@ -3,7 +3,7 @@
 # @Time    : 2021-10-01 0:28
 # @Author  : 178
 
-import asyncio, json, os, sys, random, logging, aiohttp, traceback
+import asyncio, json, os, sys, random, logging, aiohttp, traceback, platform
 from collections import OrderedDict
 
 _debug = False
@@ -183,8 +183,8 @@ class asyncBiliApi(object):
 
 def load_config():
     '''加载配置文件'''
-    if os.path.exists(f'{os.path.dirname(os.path.realpath(__file__))}/config/config.json'):
-        with open(f'{os.path.dirname(os.path.realpath(__file__))}/config/config.json', 'r', encoding='utf-8') as fp:
+    if os.path.exists(f'{os.path.dirname(os.path.realpath(sys.argv[0]))}/config/config.json'):
+        with open(f'{os.path.dirname(os.path.realpath(sys.argv[0]))}/config/config.json', 'r', encoding='utf-8') as fp:
             return json.loads(fp.read(), object_pairs_hook=OrderedDict)
     else:
         raise RuntimeError('未找到配置文件')
@@ -370,10 +370,14 @@ if __name__ == '__main__':
     try:
         logging.basicConfig(level=logging.INFO, format="[%(asctime)s] [%(levelname)s]: %(message)s")
         configData = load_config()
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(main(configData))
     except Exception as er:
         logging.error(f'配置加载异常，原因为{er}，退出程序')
         if _debug:
             traceback.print_exc()
-        sys.exit()
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(main(configData))
+    if platform.system().lower() == 'windows':
+        import msvcrt
+        logging.info("按任意键退出")
+        ord(msvcrt.getch())
+    sys.exit()
