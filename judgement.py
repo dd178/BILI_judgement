@@ -190,13 +190,25 @@ def load_config():
         raise RuntimeError('未找到配置文件')
 
 
+def get_most_opinion(opinions: list):
+    '''获取最多观点'''
+    opinion_statistics={}
+    for opinion in opinions:
+        if opinion['vote'] in opinion_statistics:
+            opinion_statistics[opinion['vote']] += 1
+        else:
+            opinion_statistics[opinion['vote']] = 1
+    most_opinion = max(opinion_statistics, key=opinion_statistics.get)
+    return filter(lambda x: x['vote'] == most_opinion, opinions)
+
 async def opinion_vote(case_id: str,
                        opinions: list,
                        biliapi
                        ):
     '''观点投票'''
     try:
-        opinion = random.choice(opinions)  # 从观点列表里随机选取一个
+        most_opinion = get_most_opinion(opinions) # 获取最多观点
+        opinion=random.choice(most_opinion) # 从最多的观点里面随机选择一条
         vote = await biliapi.juryVote(case_id=case_id, vote=opinion['vote'])
         if vote["code"] == 0:
             logging.info(f'{biliapi.name}：成功根据【{opinion["uname"]}】的观点为案件【{case_id}】投下【{opinion["vote_text"]}】')
