@@ -3,7 +3,15 @@
 # @Time    : 2021-10-01 0:28
 # @Author  : 178
 
-import asyncio, json, os, sys, random, logging, aiohttp, traceback, platform
+import asyncio
+import json
+import os
+import sys
+import random
+import logging
+import aiohttp
+import traceback
+import platform
 from collections import OrderedDict
 
 _debug = False
@@ -11,6 +19,7 @@ _debug = False
 
 class asyncBiliApi(object):
     '''B站异步接口类'''
+
     def __init__(self,
                  headers: dict
                  ):
@@ -38,7 +47,8 @@ class asyncBiliApi(object):
         '''
         if strict:
             from yarl import URL
-            self._session.cookie_jar.update_cookies(cookieData, URL('https://.bilibili.com'))
+            self._session.cookie_jar.update_cookies(
+                cookieData, URL('https://.bilibili.com'))
         else:
             self._session.cookie_jar.update_cookies(cookieData)
 
@@ -190,19 +200,39 @@ def load_config():
         raise RuntimeError('未找到配置文件')
 
 
+def get_most_opinion(case_id: str, opinions: list, username: str) -> list:
+    '''获取最多观点'''
+    opinion_statistics = {}
+    for opinion in opinions:
+        if opinion['vote'] in opinion_statistics:
+            opinion_statistics[opinion['vote']] += 1
+        else:
+            opinion_statistics[opinion['vote']] = 1
+    most_opinion = max(opinion_statistics, key=opinion_statistics.get)
+    logging.debug(
+        f'{username}：【{case_id}】的观点分布（观点id: 投票人数）{opinion_statistics}')
+    return list(filter(lambda x: x['vote'] == most_opinion, opinions))
+
+
 async def opinion_vote(case_id: str,
                        opinions: list,
                        biliapi
                        ):
     '''观点投票'''
     try:
-        opinion = random.choice(opinions)  # 从观点列表里随机选取一个
+        most_opinion = get_most_opinion(
+            case_id, opinions, biliapi.name)  # 获取最多观点
+        opinion = random.choice(most_opinion)  # 从最多的观点里面随机选择一条
+        logging.info(
+            f'{biliapi.name}：为【{case_id}】选择了【{opinion["vote_text"]}】（{opinion["vote"]}）')
         vote = await biliapi.juryVote(case_id=case_id, vote=opinion['vote'])
         if vote["code"] == 0:
-            logging.info(f'{biliapi.name}：成功根据【{opinion["uname"]}】的观点为案件【{case_id}】投下【{opinion["vote_text"]}】')
+            logging.info(
+                f'{biliapi.name}：成功根据【{opinion["uname"]}】的观点为案件【{case_id}】投下【{opinion["vote_text"]}】')
             return True
         else:
-            logging.warning(f'{biliapi.name}：风纪委员投票失败，错误码：【{vote["code"]}】，信息为：【{vote["message"]}】')
+            logging.warning(
+                f'{biliapi.name}：风纪委员投票失败，错误码：【{vote["code"]}】，信息为：【{vote["message"]}】')
             return False
     except Exception as er:
         logging.error(f'{biliapi.name}：发生错误，错误信息为：{er}')
@@ -219,13 +249,16 @@ async def replenish_vote(case_id: str,
         if not info['code']:
             vote = await biliapi.juryVote(case_id=case_id, vote=info['data']['vote_items'][default_vote]['vote'])
             if vote["code"] == 0:
-                logging.info(f"{biliapi.name}：成功根据【配置文件】为案件【{case_id}】投下【{info['data']['vote_items'][default_vote]['vote_text']}】")
+                logging.info(
+                    f"{biliapi.name}：成功根据【配置文件】为案件【{case_id}】投下【{info['data']['vote_items'][default_vote]['vote_text']}】")
                 return True
             else:
-                logging.warning(f'{biliapi.name}：风纪委员投票失败，错误码：【{vote["code"]}】，信息为：【{vote["message"]}】')
+                logging.warning(
+                    f'{biliapi.name}：风纪委员投票失败，错误码：【{vote["code"]}】，信息为：【{vote["message"]}】')
                 return False
         else:
-            logging.error(f'{biliapi.name}：获取风纪委员案件信息失败，错误码：【{info["code"]}】，信息为：【{info["message"]}】')
+            logging.error(
+                f'{biliapi.name}：获取风纪委员案件信息失败，错误码：【{info["code"]}】，信息为：【{info["message"]}】')
             return False
     except Exception as er:
         logging.error(f'{biliapi.name}：发生错误，错误信息为：{er}')
@@ -270,7 +303,8 @@ async def mode_1(biliapi,
                     logging.info(f'{biliapi.name}：{r}')
                     return
             else:
-                logging.warning(f'{biliapi.name}：获取风纪委员案件失败，错误码：【{next_["code"]}】，信息为：【{next_["message"]}】')
+                logging.warning(
+                    f'{biliapi.name}：获取风纪委员案件失败，错误码：【{next_["code"]}】，信息为：【{next_["message"]}】')
                 err -= 1
                 await asyncio.sleep(round(random.uniform(20, 40), 4))
         except Exception as er:
@@ -326,7 +360,8 @@ async def mode_2(biliapi,
                     logging.info(f'{biliapi.name}：{r}')
                     return
             else:
-                logging.warning(f'{biliapi.name}：获取风纪委员案件失败，错误码：【{next_["code"]}】，信息为：【{next_["message"]}】')
+                logging.warning(
+                    f'{biliapi.name}：获取风纪委员案件失败，错误码：【{next_["code"]}】，信息为：【{next_["message"]}】')
                 err -= 1
                 await asyncio.sleep(round(random.uniform(20, 40), 4))
         except Exception as er:
@@ -344,10 +379,12 @@ async def start(user: dict,
     async with asyncBiliApi(configData["http_header"]) as biliapi:
         try:
             if not await biliapi.login_by_cookie(user["cookieDatas"]):
-                logging.error(f'id为【{user["cookieDatas"]["DedeUserID"]}】的账户cookie失效，跳过此账户后续操作')
+                logging.error(
+                    f'id为【{user["cookieDatas"]["DedeUserID"]}】的账户cookie失效，跳过此账户后续操作')
                 return
         except Exception as er:
-            logging.error(f'登录验证id为【{user["cookieDatas"]["DedeUserID"]}】的账户失败，原因为【{er}】，跳过此账户后续操作')
+            logging.error(
+                f'登录验证id为【{user["cookieDatas"]["DedeUserID"]}】的账户失败，原因为【{er}】，跳过此账户后续操作')
             return
         try:
             logging.info(f'{biliapi.name}：开始执行风纪委员投票！')
@@ -368,7 +405,8 @@ async def main(configData):
 
 if __name__ == '__main__':
     try:
-        logging.basicConfig(level=logging.INFO, format="[%(asctime)s] [%(levelname)s]: %(message)s")
+        logging.basicConfig(
+            level=logging.INFO, format="[%(asctime)s] [%(levelname)s]: %(message)s")
         configData = load_config()
         loop = asyncio.get_event_loop()
         loop.run_until_complete(main(configData))
