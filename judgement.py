@@ -190,7 +190,7 @@ def load_config():
         raise RuntimeError('未找到配置文件')
 
 
-def get_most_opinion(case_id:str,opinions: list,username:str):
+def get_most_opinion(case_id:str,opinions: list,username:str)->list:
     '''获取最多观点'''
     opinion_statistics={}
     for opinion in opinions:
@@ -200,7 +200,7 @@ def get_most_opinion(case_id:str,opinions: list,username:str):
             opinion_statistics[opinion['vote']] = 1
     most_opinion = max(opinion_statistics, key=opinion_statistics.get)
     logging.debug(f'{username}：【{case_id}】的观点分布（观点id: 投票人数）{opinion_statistics}')
-    return filter(lambda x: x['vote'] == most_opinion, opinions)
+    return list(filter(lambda x: x['vote'] == most_opinion, opinions))
 
 async def opinion_vote(case_id: str,
                        opinions: list,
