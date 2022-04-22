@@ -11,7 +11,7 @@ import random
 import logging
 import aiohttp
 import traceback
-import platform
+# import platform
 from collections import OrderedDict
 
 _debug = False
@@ -414,7 +414,8 @@ if __name__ == '__main__':
         logging.error(f'配置加载异常，原因为{er}，退出程序')
         if _debug:
             traceback.print_exc()
-    if platform.system().lower() == 'windows':
+    # if platform.system().lower() == 'windows':  # 用户反应windows运行源代码时可能出现奇怪的问题
+    if sys.argv[0].split('.')[-1] == 'exe':  # 故使用粗暴方式判断
         import msvcrt
         logging.info("按任意键退出")
         ord(msvcrt.getch())
