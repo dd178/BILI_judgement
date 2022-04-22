@@ -160,7 +160,7 @@ class asyncBiliApi(object):
         '''
         获取风纪委员案件众议观点
         '''
-        url = f'https://api.bilibili.com/x/credit/v2/jury/case/opinion?case_id={case_id}&pn=1&ps=5'
+        url = f'https://api.bilibili.com/x/credit/v2/jury/case/opinion?case_id={case_id}&pn=1&ps=20'
         async with self._session.get(url, verify_ssl=False) as r:
             return await r.json()
 
