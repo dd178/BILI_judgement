@@ -11,7 +11,7 @@ import sys
 def outputLog():
     log = logging.getLogger('BILI_judgement')
     log.setLevel(level=logging.DEBUG)
-    formatter = logging.Formatter('[%(asctime)s] [%(name)s] [%(levelname)s]\t%(message)s')
+    formatter = logging.Formatter('[%(asctime)s] [%(levelname)s]\t%(message)s')
     # 输出日志到终端
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.formatter = formatter
