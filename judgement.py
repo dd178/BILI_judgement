@@ -2,13 +2,12 @@
 # -*- coding: utf-8 -*-
 # @Time    : 2021-10-01 0:28
 # @Author  : 178
-
 import asyncio
 import json
 import os
 import sys
 import random
-import logging
+from log import outputLog
 import aiohttp
 import traceback
 # import platform
@@ -209,7 +208,7 @@ def get_most_opinion(case_id: str, opinions: list, username: str) -> list:
         else:
             opinion_statistics[opinion['vote']] = 1
     most_opinion = max(opinion_statistics, key=opinion_statistics.get)
-    logging.debug(
+    log.debug(
         f'{username}：【{case_id}】的观点分布（观点id: 投票人数）{opinion_statistics}')
     return list(filter(lambda x: x['vote'] == most_opinion, opinions))
 
@@ -223,19 +222,19 @@ async def opinion_vote(case_id: str,
         most_opinion = get_most_opinion(
             case_id, opinions, biliapi.name)  # 获取最多观点
         opinion = random.choice(most_opinion)  # 从最多的观点里面随机选择一条
-        logging.info(
+        log.info(
             f'{biliapi.name}：为【{case_id}】选择了【{opinion["vote_text"]}】（{opinion["vote"]}）')
         vote = await biliapi.juryVote(case_id=case_id, vote=opinion['vote'])
         if vote["code"] == 0:
-            logging.info(
+            log.info(
                 f'{biliapi.name}：成功根据【{opinion["uname"]}】的观点为案件【{case_id}】投下【{opinion["vote_text"]}】')
             return True
         else:
-            logging.warning(
+            log.warning(
                 f'{biliapi.name}：风纪委员投票失败，错误码：【{vote["code"]}】，信息为：【{vote["message"]}】')
             return False
     except Exception as er:
-        logging.error(f'{biliapi.name}：发生错误，错误信息为：{er}')
+        log.error(f'{biliapi.name}：发生错误，错误信息为：{er}')
         return False
 
 
@@ -249,19 +248,19 @@ async def replenish_vote(case_id: str,
         if not info['code']:
             vote = await biliapi.juryVote(case_id=case_id, vote=info['data']['vote_items'][default_vote]['vote'])
             if vote["code"] == 0:
-                logging.info(
+                log.info(
                     f"{biliapi.name}：成功根据【配置文件】为案件【{case_id}】投下【{info['data']['vote_items'][default_vote]['vote_text']}】")
                 return True
             else:
-                logging.warning(
+                log.warning(
                     f'{biliapi.name}：风纪委员投票失败，错误码：【{vote["code"]}】，信息为：【{vote["message"]}】')
                 return False
         else:
-            logging.error(
+            log.error(
                 f'{biliapi.name}：获取风纪委员案件信息失败，错误码：【{info["code"]}】，信息为：【{info["message"]}】')
             return False
     except Exception as er:
-        logging.error(f'{biliapi.name}：发生错误，错误信息为：{er}')
+        log.error(f'{biliapi.name}：发生错误，错误信息为：{er}')
         return False
 
 
@@ -271,7 +270,7 @@ async def mode_1(biliapi,
                  ):
     while True:
         if err == 0:
-            logging.error(f"{biliapi.name}：错误次数过多，结束任务！")
+            log.error(f"{biliapi.name}：错误次数过多，结束任务！")
             return
         try:
             next_ = await biliapi.juryCaseObtain()  # 获取案件
@@ -287,28 +286,28 @@ async def mode_1(biliapi,
                     if not await replenish_vote(case_id, biliapi, random.choice(default_vote['vote'])):
                         err -= 1
             elif next_["code"] == 25014:  # 案件已审满
-                logging.info(f'{biliapi.name}：{next_["message"]}')
+                log.info(f'{biliapi.name}：{next_["message"]}')
                 return
             elif next_["code"] == 25008:  # 没有新案件
-                logging.info(f'{biliapi.name}：{next_["message"]}')
+                log.info(f'{biliapi.name}：{next_["message"]}')
                 if default_vote['once']:
-                    logging.info(f'{biliapi.name}：休眠30分钟后继续获取案件！')
+                    log.info(f'{biliapi.name}：休眠30分钟后继续获取案件！')
                     await asyncio.sleep(1800)
                 else:
                     return
             elif next_["code"] == 25006:  # 风纪委员资格已过期
-                logging.warning(f'{biliapi.name}：风纪委员资格已过期，尝试申请资格')
+                log.warning(f'{biliapi.name}：风纪委员资格已过期，尝试申请资格')
                 r = await biliapi.juryapply()
                 if r["code"] != 0:
-                    logging.info(f'{biliapi.name}：{r}')
+                    log.info(f'{biliapi.name}：{r}')
                     return
             else:
-                logging.warning(
+                log.warning(
                     f'{biliapi.name}：获取风纪委员案件失败，错误码：【{next_["code"]}】，信息为：【{next_["message"]}】')
                 err -= 1
                 await asyncio.sleep(round(random.uniform(20, 40), 4))
         except Exception as er:
-            logging.error(f'{biliapi.name}：发生错误，错误信息为：{er}')
+            log.error(f'{biliapi.name}：发生错误，错误信息为：{er}')
             if _debug:
                 traceback.print_exc()
             err -= 1
@@ -322,7 +321,7 @@ async def mode_2(biliapi,
     case_id_list = []
     while True:
         if err == 0:
-            logging.error(f"{biliapi.name}：错误次数过多，结束任务！")
+            log.error(f"{biliapi.name}：错误次数过多，结束任务！")
             return
         try:
             next_ = await biliapi.juryCaseObtain()  # 获取案件
@@ -337,35 +336,35 @@ async def mode_2(biliapi,
                 else:
                     case_id_list.append(case_id)
             elif next_["code"] == 25014:  # 案件已审满
-                logging.info(f'{biliapi.name}：{next_["message"]}')
+                log.info(f'{biliapi.name}：{next_["message"]}')
                 return
             elif next_["code"] == 25008:  # 没有新案件
-                logging.info(f'{biliapi.name}：{next_["message"]}')
+                log.info(f'{biliapi.name}：{next_["message"]}')
                 if not case_id_list and default_vote['once']:
-                    logging.info(f'{biliapi.name}：休眠30分钟后继续获取案件！')
+                    log.info(f'{biliapi.name}：休眠30分钟后继续获取案件！')
                     await asyncio.sleep(1800)
                 else:
                     for case_id in case_id_list:
                         case_id_list.remove(case_id)
                         if err == 0:
-                            logging.error(f"{biliapi.name}：错误次数过多，结束任务！")
+                            log.error(f"{biliapi.name}：错误次数过多，结束任务！")
                             return
                         if not await replenish_vote(case_id, biliapi, random.choice(default_vote['vote'])):
                             err -= 1
                         await asyncio.sleep(round(random.uniform(10, 20), 4))
             elif next_["code"] == 25006:  # 风纪委员资格已过期
-                logging.warning(f'{biliapi.name}：风纪委员资格已过期，尝试申请资格')
+                log.warning(f'{biliapi.name}：风纪委员资格已过期，尝试申请资格')
                 r = await biliapi.juryapply()
                 if r["code"] != 0:
-                    logging.info(f'{biliapi.name}：{r}')
+                    log.info(f'{biliapi.name}：{r}')
                     return
             else:
-                logging.warning(
+                log.warning(
                     f'{biliapi.name}：获取风纪委员案件失败，错误码：【{next_["code"]}】，信息为：【{next_["message"]}】')
                 err -= 1
                 await asyncio.sleep(round(random.uniform(20, 40), 4))
         except Exception as er:
-            logging.error(f'{biliapi.name}：发生错误，错误信息为：{er}')
+            log.error(f'{biliapi.name}：发生错误，错误信息为：{er}')
             if _debug:
                 traceback.print_exc()
             err -= 1
@@ -379,21 +378,21 @@ async def start(user: dict,
     async with asyncBiliApi(configData["http_header"]) as biliapi:
         try:
             if not await biliapi.login_by_cookie(user["cookieDatas"]):
-                logging.error(
+                log.error(
                     f'id为【{user["cookieDatas"]["DedeUserID"]}】的账户cookie失效，跳过此账户后续操作')
                 return
         except Exception as er:
-            logging.error(
+            log.error(
                 f'登录验证id为【{user["cookieDatas"]["DedeUserID"]}】的账户失败，原因为【{er}】，跳过此账户后续操作')
             return
         try:
-            logging.info(f'{biliapi.name}：开始执行风纪委员投票！')
+            log.info(f'{biliapi.name}：开始执行风纪委员投票！')
             if configData['default_vote']['mode'] == 1:
                 await mode_1(biliapi, configData['default_vote'])
             elif configData['default_vote']['mode'] == 2:
                 await mode_2(biliapi, configData['default_vote'])
         except Exception as er:
-            logging.error(f'{biliapi.name}：发生错误，错误信息为：{er}')
+            log.error(f'{biliapi.name}：发生错误，错误信息为：{er}')
             if _debug:
                 traceback.print_exc()
             return
@@ -404,19 +403,19 @@ async def main(configData):
 
 
 if __name__ == '__main__':
+    log = outputLog()
     try:
-        logging.basicConfig(
-            level=logging.INFO, format="[%(asctime)s] [%(levelname)s]: %(message)s")
+        log.info("开始执行风纪委员投票！")
         configData = load_config()
         loop = asyncio.get_event_loop()
         loop.run_until_complete(main(configData))
     except Exception as er:
-        logging.error(f'配置加载异常，原因为{er}，退出程序')
+        log.error(f'配置加载异常，原因为{er}，退出程序')
         if _debug:
             traceback.print_exc()
     # if platform.system().lower() == 'windows':  # 用户反应windows运行源代码时可能出现奇怪的问题
     if sys.argv[0].split('.')[-1] == 'exe':  # 故使用粗暴方式判断
         import msvcrt
-        logging.info("按任意键退出")
+        log.info("按任意键退出")
         ord(msvcrt.getch())
     sys.exit()
