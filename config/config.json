@@ -6,7 +6,7 @@
     },
     "default_vote": {
         "mode": 1,
-        "vote": [0, 1, 2],
+        "vote": [0, 1],
         "once": true
     },
     "users": [
@@ -17,5 +17,14 @@
                 "DedeUserID": "xxxxx"
             }
         }
-    ]
+    ],
+    "push": {
+        "enable": "false",
+        "msgtpye": ["CookieExpires", "UnknownError", "DailyMissions"],
+        "wxpush": {
+            "corpid": "xxxxx",
+            "secret": "xxxxx",
+            "agentid": 1000001
+        }
+    }
 }
