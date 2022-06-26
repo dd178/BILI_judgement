@@ -254,7 +254,7 @@ async def wxpush(user: str,
                 return
         url = f'https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token={access_token}'
         data = {
-            "touser": "@all",
+            "touser": configData["push"]["wxpush"]["touser"],
             "msgtype": "text",
             "agentid": configData["push"]["wxpush"]["agentid"],
             "text": {

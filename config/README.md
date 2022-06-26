@@ -1,7 +1,7 @@
 ```json5
 {
     "http_header": {  // 建议使用常用浏览器的ua
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.108 Safari/537.36",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36",
         "Referer": "https://www.bilibili.com/",
         "Connection": "keep-alive"
     },
@@ -32,7 +32,8 @@
         "wxpush": {  // 企业微信推送必填，获取方法自行搜索
             "corpid": "xxxxx",  // 企业id，字符串类型
             "secret": "xxxxx",  // 应用密钥，字符串类型
-            "agentid": 1000001  // 应用id，数字整型
+            "agentid": 1000001,  // 应用id，数字整型
+            "touser": "@all"  // 指定接收消息的成员，在企业微信网页-通讯录-成员详情-账号，成员ID列表（多个接收者用‘|’分隔，最多支持1000个）。特殊情况：指定为"@all"，则向该企业应用的全部成员发送
         }
     }
 }

@@ -5,6 +5,7 @@
 ## 使用：
 * 使用python3.7或以上版本
 * 克隆或下载本项目，使用`pip install aiohttp`安装依赖
+* 运行 `cd BILI_judgement` 进入项目文件夹，然后运行 `cp ./config/config.json.example ./config/config.json` 复制并重命名一份配置文件
 * 抓取 `SESSDATA`、`bili_jct`、`DedeUserID` 三个值填入 `config.json` ，支持多账号
 * 使用 `python judgement.py` 运行脚本
 
