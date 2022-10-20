@@ -19,7 +19,7 @@
         }
     ],
     "push": {
-        "enable": "false",
+        "enable": false,
         "msgtpye": ["CookieExpires", "UnknownError", "DailyMissions"],
         "wxpush": {
             "corpid": "xxxxx",

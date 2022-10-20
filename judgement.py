@@ -231,7 +231,7 @@ async def wxpush(user: str,
         "UnknownError": f"【风纪委员】\n{user}：发生未知错误！",
         "DailyMissions": None
     }
-    if configData["push"]["enable"] == 'false' or msgtpye not in configData["push"]["msgtpye"]:  # 判断推送类型是否是用户填写的类型
+    if not configData["push"]["enable"] or msgtpye not in configData["push"]["msgtpye"]:  # 判断推送类型是否是用户填写的类型
         return
     elif msgtpye == "DailyMissions":
         jurylist = await biliapi.juryList()

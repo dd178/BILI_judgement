@@ -27,7 +27,7 @@
         }
     ],
     "push": {  // 推送
-        "enable": "false",  // 开关，false为关闭推送，true或其他任意字段为开启推送
+        "enable": false,  // 开关，false或0为关闭所有推送，true或1为开启所有推送
         "msgtpye": ["CookieExpires", "UnknownError", "DailyMissions"],  // 选择推送类型，"CookieExpires"为cookie过期推送，"UnknownError"为运行报错推送，"DailyMissions"为每日任务完成状况推送
         "wxpush": {  // 企业微信推送必填，获取方法自行搜索
             "corpid": "xxxxx",  // 企业id，字符串类型
