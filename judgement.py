@@ -273,10 +273,15 @@ async def opinion_vote(case_id: str,
                        biliapi
                        ):
     '''观点投票'''
+    vote_text_dict = {1:"合适", 2:"一般", 3:"不合适", 4:"无法判断", 11:"好", 12:"普通", 13:"差", 14:"无法判断"}
     try:
         most_opinion = get_most_opinion(
             case_id, opinions, biliapi.name)  # 获取最多观点
         opinion = random.choice(most_opinion)  # 从最多的观点里面随机选择一条
+        try:
+            opinion["vote_text"] = vote_text_dict[int(opinion["vote"])]
+        except:
+            pass
         logging.info(
             f'{biliapi.name}：为【{case_id}】选择了【{opinion["vote_text"]}】（{opinion["vote"]}）')
         vote = await biliapi.juryVote(case_id=case_id, vote=opinion['vote'])
