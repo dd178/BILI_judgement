@@ -221,17 +221,17 @@ def get_most_opinion(case_id: str, opinions: list, username: str) -> list:
     return list(filter(lambda x: x['vote'] == most_opinion, opinions))
 
 
-async def wxpush(user: str,
+async def push(user: str,
                  msgtpye: str,
                  biliapi=None
                  ):
-    '''企业微信推送'''
+    '''推送'''
     msg = {
         "CookieExpires": f"【风纪委员】\n{user}：cookie已过期！请重新获取！",
         "UnknownError": f"【风纪委员】\n{user}：发生未知错误！",
         "DailyMissions": None
     }
-    if configData["push"]["enable"] == 'false' or msgtpye not in configData["push"]["msgtpye"]:  # 判断推送类型是否是用户填写的类型
+    if not configData["push"]["enable"] or msgtpye not in configData["push"]["msgtpye"]:  # 判断推送类型是否是用户填写的类型
         return
     elif msgtpye == "DailyMissions":
         jurylist = await biliapi.juryList()
@@ -241,32 +241,42 @@ async def wxpush(user: str,
                 if case['vote_time']//(24*3600) == time.time()//(24*3600):  # 判断案件投票日期是否和脚本运行日期同一天，用于统计今日投票案件
                     number += 1
         else:
-            logging.error(f'{user}：【企业微信推送】已投票案件获取失败')
+            logging.error(f'{user}：【推送】已投票案件获取失败')
             return
         msg['DailyMissions'] = f'【风纪委员】\n{user}：今日任务已完成{number}/20'
-    async with aiohttp.ClientSession(headers={"Content-Type": "application/json"}) as session:
-        url = f'https://qyapi.weixin.qq.com/cgi-bin/gettoken?corpid={configData["push"]["wxpush"]["corpid"]}&corpsecret={configData["push"]["wxpush"]["secret"]}'
-        async with session.post(url) as response:
-            if response.status == 200 and json.loads(await response.text())['errcode'] == 0:
-                access_token = json.loads(await response.text())['access_token']
-            else:
-                logging.error(f'{user}：【企业微信推送】access_token获取失败')
-                return
-        url = f'https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token={access_token}'
-        data = {
-            "touser": configData["push"]["wxpush"]["touser"],
-            "msgtype": "text",
-            "agentid": configData["push"]["wxpush"]["agentid"],
-            "text": {
-                "content": f"{msg.get(msgtpye)}"
+    '''企业微信推送'''
+    if configData["push"]["wxpush"]["enable"]:
+        async with aiohttp.ClientSession(headers={"Content-Type": "application/json"}) as session:
+            url = f'https://qyapi.weixin.qq.com/cgi-bin/gettoken?corpid={configData["push"]["wxpush"]["corpid"]}&corpsecret={configData["push"]["wxpush"]["secret"]}'
+            async with session.post(url) as response:
+                if response.status == 200 and json.loads(await response.text())['errcode'] == 0:
+                    access_token = json.loads(await response.text())['access_token']
+                else:
+                    logging.error(f'{user}：【企业微信推送】access_token获取失败')
+                    return
+            url = f'https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token={access_token}'
+            data = {
+                "touser": configData["push"]["wxpush"]["touser"],
+                "msgtype": "text",
+                "agentid": configData["push"]["wxpush"]["agentid"],
+                "text": {
+                    "content": f"{msg.get(msgtpye)}"
+                }
             }
-        }
-        async with session.post(url, json=data) as response:
-            if response.status == 200 and json.loads(await response.text())['errcode'] == 0:
-                logging.info(f'{user}：【企业微信推送】消息推送成功！')
-            else:
-                logging.error(f'{user}：【企业微信推送】消息推送失败！')
-
+            async with session.post(url, json=data) as response:
+                if response.status == 200 and json.loads(await response.text())['errcode'] == 0:
+                    logging.info(f'{user}：【企业微信推送】消息推送成功！')
+                else:
+                    logging.error(f'{user}：【企业微信推送】消息推送失败！')
+    '''Telegram推送'''
+    if configData["push"]["tgpush"]["enable"]:
+        async with aiohttp.ClientSession(headers={"Content-Type": "application/json"}) as session:
+            url = f'https://api.telegram.org/bot{configData["push"]["tgpush"]["bot_token"]}/sendMessage?chat_id={configData["push"]["tgpush"]["chat_id"]}&text={msg.get(msgtpye)}'
+            async with session.get(url) as response:
+                if response.status == 200:
+                    logging.info(f'{user}：【Telegram推送】消息推送成功！')
+                else:
+                    logging.error(f'{user}：【Telegram推送】消息推送失败！')
 
 async def opinion_vote(case_id: str,
                        opinions: list,
@@ -331,7 +341,7 @@ async def mode_1(biliapi,
     while True:
         if err == 0:
             logging.error(f"{biliapi.name}：错误次数过多，结束任务！")
-            await wxpush(user=biliapi.name, msgtpye='UnknownError')
+            await push(user=biliapi.name, msgtpye='UnknownError')
             return
         try:
             next_ = await biliapi.juryCaseObtain()  # 获取案件
@@ -383,7 +393,7 @@ async def mode_2(biliapi,
     while True:
         if err == 0:
             logging.error(f"{biliapi.name}：错误次数过多，结束任务！")
-            await wxpush(user=biliapi.name, msgtpye='UnknownError')
+            await push(user=biliapi.name, msgtpye='UnknownError')
             return
         try:
             next_ = await biliapi.juryCaseObtain()  # 获取案件
@@ -442,12 +452,12 @@ async def start(user: dict,
             if not await biliapi.login_by_cookie(user["cookieDatas"]):
                 logging.error(
                     f'id为【{user["cookieDatas"]["DedeUserID"]}】的账户cookie失效，跳过此账户后续操作')
-                await wxpush(user=user["cookieDatas"]["DedeUserID"], msgtpye='CookieExpires')
+                await push(user=user["cookieDatas"]["DedeUserID"], msgtpye='CookieExpires')
                 return
         except Exception as er:
             logging.error(
                 f'登录验证id为【{user["cookieDatas"]["DedeUserID"]}】的账户失败，原因为【{er}】，跳过此账户后续操作')
-            await wxpush(user=user["cookieDatas"]["DedeUserID"], msgtpye='UnknownError')
+            await push(user=user["cookieDatas"]["DedeUserID"], msgtpye='UnknownError')
             return
         try:
             logging.info(f'{biliapi.name}：开始执行风纪委员投票！')
@@ -455,10 +465,10 @@ async def start(user: dict,
                 await mode_1(biliapi, configData['default_vote'])
             elif configData['default_vote']['mode'] == 2:
                 await mode_2(biliapi, configData['default_vote'])
-            await wxpush(user=user["cookieDatas"]["DedeUserID"], msgtpye='DailyMissions', biliapi=biliapi)
+            await push(user=user["cookieDatas"]["DedeUserID"], msgtpye='DailyMissions', biliapi=biliapi)
         except Exception as er:
             logging.error(f'{biliapi.name}：发生错误，错误信息为：{er}')
-            await wxpush(user=user["cookieDatas"]["DedeUserID"], msgtpye='UnknownError')
+            await push(user=user["cookieDatas"]["DedeUserID"], msgtpye='UnknownError')
             if _debug:
                 traceback.print_exc()
             return

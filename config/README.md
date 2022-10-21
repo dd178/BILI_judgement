@@ -27,13 +27,19 @@
         }
     ],
     "push": {  // 推送
-        "enable": "false",  // 开关，false为关闭推送，true或其他任意字段为开启推送
+        "enable": false,  // 开关，false或0为关闭所有推送，true或1为开启所有推送
         "msgtpye": ["CookieExpires", "UnknownError", "DailyMissions"],  // 选择推送类型，"CookieExpires"为cookie过期推送，"UnknownError"为运行报错推送，"DailyMissions"为每日任务完成状况推送
         "wxpush": {  // 企业微信推送必填，获取方法自行搜索
+            "enable": false,  // 开关，false或0为关闭企业微信推送，true或1为开启企业微信推送
             "corpid": "xxxxx",  // 企业id，字符串类型
             "secret": "xxxxx",  // 应用密钥，字符串类型
             "agentid": 1000001,  // 应用id，数字整型
             "touser": "@all"  // 指定接收消息的成员，在企业微信网页-通讯录-成员详情-账号，成员ID列表（多个接收者用‘|’分隔，最多支持1000个）。特殊情况：指定为"@all"，则向该企业应用的全部成员发送
+        },
+        "tgpush": {  // Telegram推送必填，获取方法自行搜索
+            "enable": false,  // 开关，false或0为关闭TG推送，true或1为开启TG推送
+            "bot_token": "xxxxx:xxxxx", // 私聊@BotFather获取的机器人token
+            "chat_id": "-100xxxxx" // 指定接收消息的用户/频道/群组id，频道或群组需要在开头加上"-100"
         }
     }
 }
