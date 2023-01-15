@@ -222,9 +222,9 @@ def get_most_opinion(case_id: str, opinions: list, username: str) -> list:
 
 
 async def push(user: str,
-                 msgtpye: str,
-                 biliapi=None
-                 ):
+               msgtpye: str,
+               biliapi=None
+               ):
     '''推送'''
     msg = {
         "CookieExpires": f"【风纪委员】\n{user}：cookie已过期！请重新获取！",
@@ -238,12 +238,13 @@ async def push(user: str,
         number = 0
         if jurylist['code'] == 0:
             for case in jurylist['data']['list']:
-                if case['vote_time']//(24*3600) == time.time()//(24*3600):  # 判断案件投票日期是否和脚本运行日期同一天，用于统计今日投票案件
+                if case['vote_time'] // (24 * 3600) == time.time() // (24 * 3600):  # 判断案件投票日期是否和脚本运行日期同一天，用于统计今日投票案件
                     number += 1
         else:
             logging.error(f'{user}：【推送】已投票案件获取失败')
             return
         msg['DailyMissions'] = f'【风纪委员】\n{user}：今日任务已完成{number}/20'
+
     '''企业微信推送'''
     if configData["push"]["wxpush"]["enable"]:
         async with aiohttp.ClientSession(headers={"Content-Type": "application/json"}) as session:
@@ -268,6 +269,7 @@ async def push(user: str,
                     logging.info(f'{user}：【企业微信推送】消息推送成功！')
                 else:
                     logging.error(f'{user}：【企业微信推送】消息推送失败！')
+
     '''Telegram推送'''
     if configData["push"]["tgpush"]["enable"]:
         async with aiohttp.ClientSession(headers={"Content-Type": "application/json"}) as session:
@@ -278,12 +280,57 @@ async def push(user: str,
                 else:
                     logging.error(f'{user}：【Telegram推送】消息推送失败！')
 
+    '''Server酱推送'''
+    if configData["push"]["server"]["enable"]:
+        async with aiohttp.ClientSession(headers={"Content-Type": "application/json"}) as session:
+            url = f'https://sctapi.ftqq.com/{configData["push"]["server"]["sendkey"]}.send'
+            data = {
+                'title': '【风纪委员】',
+                'desp': f"{msg.get(msgtpye)}"
+            }
+            async with session.post(url, json=data) as response:
+                if response.status == 200:
+                    logging.info(f'{user}：【Server酱推送】消息推送成功！')
+                else:
+                    logging.error(f'{user}：【Server酱推送】消息推送失败！')
+
+    '''即时达推送'''
+    if configData["push"]["ijingniu"]["enable"]:
+        async with aiohttp.ClientSession(headers={"Content-Type": "application/json"}) as session:
+            url = f'http://push.ijingniu.cn/send'
+            data = {
+                'channelkey': f'{configData["push"]["ijingniu"]["channelkey"]}',
+                'msgHead': '【风纪委员】',
+                'msgBody': f"{msg.get(msgtpye)}"
+            }
+            async with session.post(url, json=data) as response:
+                if response.status == 200:
+                    logging.info(f'{user}：【即时达推送】消息推送成功！')
+                else:
+                    logging.error(f'{user}：【即时达推送】消息推送失败！')
+
+    '''pushplus推送'''
+    if configData["push"]["pushplus"]["enable"]:
+        async with aiohttp.ClientSession(headers={"Content-Type": "application/json"}) as session:
+            url = f'http://www.pushplus.plus/send'
+            data = {
+                'token': f'{configData["push"]["pushplus"]["token"]}',
+                'title': '【风纪委员】',
+                'content': f"{msg.get(msgtpye)}"
+            }
+            async with session.post(url, json=data) as response:
+                if response.status == 200:
+                    logging.info(f'{user}：【pushplus推送】消息推送成功！')
+                else:
+                    logging.error(f'{user}：【pushplus推送】消息推送失败！')
+
+
 async def opinion_vote(case_id: str,
                        opinions: list,
                        biliapi
                        ):
     '''观点投票'''
-    vote_text_dict = {1:"合适", 2:"一般", 3:"不合适", 4:"无法判断", 11:"好", 12:"普通", 13:"差", 14:"无法判断"}
+    vote_text_dict = {1: "合适", 2: "一般", 3: "不合适", 4: "无法判断", 11: "好", 12: "普通", 13: "差", 14: "无法判断"}
     try:
         most_opinion = get_most_opinion(
             case_id, opinions, biliapi.name)  # 获取最多观点
@@ -492,6 +539,7 @@ if __name__ == '__main__':
     # if platform.system().lower() == 'windows':  # 用户反应windows运行源代码时可能出现奇怪的问题
     if sys.argv[0].split('.')[-1] == 'exe':  # 故使用粗暴方式判断
         import msvcrt
+
         logging.info("按任意键退出")
         ord(msvcrt.getch())
     sys.exit()

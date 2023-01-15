@@ -32,6 +32,18 @@
             "enable": false,
             "bot_token": "xxxxx:xxxxx",
             "chat_id": "-100xxxxx"
+        },
+        "server": {
+            "enable": false,
+            "sendkey": "xxxxx"
+        },
+        "ijingniu": {
+            "enable": false,
+            "channelkey": "xxxxx"
+        },
+        "pushplus":{
+            "enable": false,
+            "token": "xxxxx"
         }
     }
 }
