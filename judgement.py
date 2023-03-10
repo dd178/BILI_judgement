@@ -352,6 +352,8 @@ async def opinion_vote(case_id: str,
             return False
     except Exception as er:
         logging.error(f'{biliapi.name}：发生错误，错误信息为：{er}')
+        if _debug:
+            traceback.print_exc()
         return False
 
 
@@ -378,6 +380,8 @@ async def replenish_vote(case_id: str,
             return False
     except Exception as er:
         logging.error(f'{biliapi.name}：发生错误，错误信息为：{er}')
+        if _debug:
+            traceback.print_exc()
         return False
 
 
@@ -505,6 +509,8 @@ async def start(user: dict,
             logging.error(
                 f'登录验证id为【{user["cookieDatas"]["DedeUserID"]}】的账户失败，原因为【{er}】，跳过此账户后续操作')
             await push(user=user["cookieDatas"]["DedeUserID"], msgtpye='UnknownError')
+            if _debug:
+                traceback.print_exc()
             return
         try:
             logging.info(f'{biliapi.name}：开始执行风纪委员投票！')
